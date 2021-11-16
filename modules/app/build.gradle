@@ -1,8 +1,9 @@
 apply plugin: 'application'
 
 dependencies {
-    implementation 'ca.uhn.hapi.fhir:hapi-fhir-client:5.4.2'
-    implementation 'ca.uhn.hapi.fhir:hapi-fhir-structures-dstu3:5.4.2'
+    def HAPI = '5.4.2'
+    implementation "ca.uhn.hapi.fhir:hapi-fhir-client:${HAPI}"
+    implementation "ca.uhn.hapi.fhir:hapi-fhir-structures-dstu3:${HAPI}"
     implementation 'org.eclipse.jetty:jetty-server:11.0.6'
     implementation 'org.apache.logging.log4j:log4j:2.14.1'
     implementation 'org.apache.logging.log4j:log4j-slf4j18-impl:2.14.1'
