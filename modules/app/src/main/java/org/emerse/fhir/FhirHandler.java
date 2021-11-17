@@ -1,13 +1,14 @@
 package org.emerse.fhir;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
+import ca.uhn.fhir.rest.gclient.StringClientParam;
 import com.fasterxml.jackson.core.JsonFactory;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.eclipse.jetty.server.Request;
-import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.HumanName;
-import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.HumanName;
+import org.hl7.fhir.r4.model.Patient;
 
 public class FhirHandler extends AbstractHandler
 {
@@ -20,13 +21,13 @@ public class FhirHandler extends AbstractHandler
 	) throws Exception
 	{
 		var source = new ParameterSource(request);
-		var mrn = source.getParameter("mrn", String.class);
+		var mrn = source.getParameter("fhir_id", String.class);
 		var
 			patient =
 			(Patient) client
 				.search()
 				.forResource(Patient.class)
-				.where(Patient.IDENTIFIER.exactly().systemAndCode("MRN", mrn))
+				.where(new StringClientParam("_id").matches().value(mrn))
 				.returnBundle(Bundle.class)
 				.execute()
 				.getEntryFirstRep()
