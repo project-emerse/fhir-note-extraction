@@ -1,0 +1,28 @@
+body {
+    overflow-y: scroll;
+}
+body > .bar {
+    background-color: dimgray;
+    display: flex;
+}
+body > .bar > .item {
+    margin: 10px;
+}
+body > .bar > .right {
+    margin: 10px 10px 10px auto;
+}
+body > .header {
+    background-color: cadetblue;
+    display: flex;
+    flex-direction: column;
+}
+body > .header > .item {
+    margin: 10px;
+}
+body > .note {
+    display: flex;
+}
+.label {
+    color:#fff;
+    margin-right: 0.1rem;
+}

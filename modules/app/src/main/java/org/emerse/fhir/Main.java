@@ -5,12 +5,22 @@ import ca.uhn.fhir.rest.client.api.IClientInterceptor;
 import ca.uhn.fhir.rest.client.interceptor.AdditionalRequestHeadersInterceptor;
 import ca.uhn.fhir.rest.client.interceptor.BasicAuthInterceptor;
 import com.fasterxml.jackson.core.JsonFactory;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.DefaultHandler;
 import org.eclipse.jetty.server.handler.HandlerList;
+import org.eclipse.jetty.util.URIUtil;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Function;
@@ -21,6 +31,8 @@ public class Main
 	private static JsonFactory jsonFactory;
 	private static String fhirBaseUrl;
 	private static int port = 8080;
+	private static String htmlRoot;
+	private static DefaultHandler fallbackHandler = new DefaultHandler();
 	private static IClientInterceptor basicAuth;
 	private static AdditionalRequestHeadersInterceptor headers;
 
@@ -47,9 +59,87 @@ public class Main
 
 		handlerMap.put("fhir", fhirHandler);
 
-		server.setHandler(new HandlerList(handlerMap, new DefaultHandler()));
-		System.out.println("Listening on " + port);
+		//server.setHandler(new HandlerList(handlerMap, new DefaultHandler()));
+
+		server.setHandler(new AbstractHandler() {
+							  @Override
+							  protected void doHandle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws Exception {
+								  try {
+									  switch (target) {
+										  case "/fhir" -> fhirHandler.doHandle(target, baseRequest, request, response);
+										  default -> writeResource(baseRequest, request, response, target);
+									  }
+								  } catch (Exception e) {
+									  if (e instanceof IOException ioe) {
+										  throw ioe;
+									  } else if (e instanceof ServletException se) {
+										  throw se;
+									  } else {
+										  throw new RuntimeException(e);
+									  }
+								  }
+							  }
+						  }
+
+		);
+
+		var connector = new ServerConnector(server);
+		server.addConnector(connector);
+		connector.setPort(8000);
+		System.out.println("Will listen on 8000");
+		System.out.println("See page http://localhost:8000/index.html");
+
 		server.start();
+	}
+
+	private static void writeResource(Request baseRequest, HttpServletRequest request, HttpServletResponse response, String resource)
+			throws IOException, ServletException {
+		if(htmlRoot == null) {
+			fallbackHandler.handle(resource, baseRequest, request, response);
+			return;
+		}
+		var path = Path.of(URIUtil.canonicalPath(htmlRoot + resource));
+		if (!Files.exists(path))
+		{
+			response.setStatus(404);
+			response.getWriter().println("Resource not found");
+			return;
+		}
+		var stream = Files.newInputStream(path);
+		response.setStatus(200);
+		if (resource.endsWith(".mjs"))
+		{
+			response.addHeader("Content-Type", "text/javascript");
+		}
+		else if (resource.endsWith(".html"))
+		{
+			response.addHeader("Content-Type", "text/html");
+		}
+		else if (resource.endsWith(".css"))
+		{
+			response.addHeader("Content-Type", "text/css");
+		}
+		else if (resource.endsWith(".ico"))
+		{
+			response.addHeader("Content-Type", "image/png");
+		}
+		try (
+				var outC = Channels.newChannel(response.getOutputStream());
+				var inC = Channels.newChannel(stream)
+		)
+		{
+			var buf = ByteBuffer.allocate(1024);
+			buf.clear();
+			while (-1 != inC.read(buf))
+			{
+				buf.flip();
+				while (buf.hasRemaining())
+				{
+					outC.write(buf);
+				}
+				buf.compact();
+			}
+		}
 	}
 
 	private static void parseArguments(String[] args) throws IOException {
@@ -59,6 +149,7 @@ public class Main
 			{
 				case "--fhir-url" -> fhirBaseUrl = args[++i];
 				case "--port" -> port = Integer.parseInt(args[++i]);
+				case "--html-root" -> htmlRoot = args[++i];
 				case "--credentials" -> {
 					Properties props = new Properties();
 					try(var f = new FileInputStream(args[++i])) {
@@ -89,8 +180,10 @@ public class Main
 	{
 		System.out.println("""
 			Options:
-			  --fhir-url <url>       [required] the url of the fhir endpoint
-			  --port <port>          the url to listen on
+			  --fhir-url <url>       	    [required] the url of the fhir endpoint
+			  --credentials <credential>	the credential file containing info of basic auth and header parameters
+			  --port <port>          	    the url to listen on
+			  --html-root <root>	 		the html root absolute path
 			""");
 		System.exit(1);
 	}

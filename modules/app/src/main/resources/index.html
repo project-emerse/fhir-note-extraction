@@ -1,0 +1,40 @@
+<html lang="en">
+<head>
+    <title>FHIR Test</title>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <script type="module" src="index.mjs"></script>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+<div class="bar">
+    <div class="item">
+        <span class="label">MRN: </span>
+        <input id="mrn" class="input" type="text">
+    </div>
+    <div class="item">
+        <span class="label">Date After: </span>
+        <input type="datetime-local" id="after">
+    </div>
+    <div class="item">
+        <button id="search">Search</button>
+    </div>
+    <div class="right">
+        <span id="patient" class="label"></span>
+        <button id="prev">Prev</button>
+        <button id="next">Next</button>
+    </div>
+</div>
+<div class="header">
+    <div class="item">
+        <span>Note Type:</span>
+        <span id="noteType"></span>
+    </div>
+    <div class="item">
+        <span>Date/Time:</span>
+        <span id="noteDate"></span>
+    </div>
+</div>
+<div id="note" class="note">
+</div>
+</body>
+</html>
