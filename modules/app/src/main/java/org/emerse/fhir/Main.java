@@ -42,7 +42,7 @@ public class Main
 
 		jsonFactory = new JsonFactory();
 
-		var server = new Server(port);
+		var server = new Server();
 		var handlerMap = new HandlerMap();
 
 		var fhir = FhirContext.forR4();
@@ -85,9 +85,9 @@ public class Main
 
 		var connector = new ServerConnector(server);
 		server.addConnector(connector);
-		connector.setPort(8000);
-		System.out.println("Will listen on 8000");
-		System.out.println("See page http://localhost:8000/index.html");
+		connector.setPort(port);
+		System.out.println("Will listen on: " + port);
+		System.out.println("See page http://localhost:" + port + "/index.html");
 
 		server.start();
 	}
