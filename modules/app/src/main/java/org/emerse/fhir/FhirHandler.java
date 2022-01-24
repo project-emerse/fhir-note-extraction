@@ -8,13 +8,12 @@ import com.fasterxml.jackson.core.JsonFactory;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.codec.binary.StringUtils;
 import org.eclipse.jetty.server.Request;
 import org.hl7.fhir.r4.model.*;
 
 import java.util.Optional;
 import java.util.stream.Collectors;
-//--fhir-url https://mcintvwrtst.med.umich.edu/Interconnect-TSTFHIR/api/FHIR/R4 --credentials C:\Users\wanggu\fhir-cred.properties
+
 public class FhirHandler extends AbstractHandler
 {
 	public static final Base64 decoder = new Base64();
@@ -35,7 +34,9 @@ public class FhirHandler extends AbstractHandler
 
 			if (!attachment.getUrlElement().isEmpty()) {
 				Binary data = client.read().resource(Binary.class).withUrl(attachment.getUrl()).execute();
-				return new Content(new String(decoder.decode(data.getContentAsBase64())), data.getContentType());
+				var base64Str = data.getContentAsBase64();
+				if(base64Str != null)
+				    return new Content(new String(decoder.decode(data.getContentAsBase64())), data.getContentType());
 			}
 		}
 

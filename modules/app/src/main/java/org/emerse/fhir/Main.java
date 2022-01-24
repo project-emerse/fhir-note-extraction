@@ -142,6 +142,25 @@ public class Main
 		}
 	}
 
+	static FHIRAuth loadCredentials(String filePath) throws IOException {
+		Properties props = new Properties();
+		BasicAuthInterceptor ba;
+		AdditionalRequestHeadersInterceptor hd;
+		try(var f = new FileInputStream(filePath)) {
+			props.load(f);
+			ba = new BasicAuthInterceptor(Optional.ofNullable(props.get("username")).orElse("").toString(),
+					Optional.ofNullable(props.get("password")).orElse("").toString());
+			hd = props.entrySet().stream().filter(ks -> !ks.getKey().equals("username") && !ks.getKey().equals("password"))
+					.collect(
+							Collector.of(AdditionalRequestHeadersInterceptor::new,
+									(h, ks) -> h.addHeaderValue(ks.getKey().toString(), ks.getValue().toString()),
+									(h1, h2) -> null,
+									Function.identity()
+							));
+		}
+		return ba != null && hd != null ? new FHIRAuth(ba, hd) : null;
+	}
+
 	private static void parseArguments(String[] args) throws IOException {
 		for (int i = 0; i < args.length; i++)
 		{
@@ -151,18 +170,11 @@ public class Main
 				case "--port" -> port = Integer.parseInt(args[++i]);
 				case "--html-root" -> htmlRoot = args[++i];
 				case "--credentials" -> {
-					Properties props = new Properties();
-					try(var f = new FileInputStream(args[++i])) {
-						props.load(f);
-						basicAuth = new BasicAuthInterceptor(Optional.ofNullable(props.get("username")).orElse("").toString(),
-															 Optional.ofNullable(props.get("password")).orElse("").toString());
-						headers = props.entrySet().stream().filter(ks -> !ks.getKey().equals("username") && !ks.getKey().equals("password"))
-												  .collect(
-													  Collector.of(AdditionalRequestHeadersInterceptor::new,
-													  (h, ks) -> h.addHeaderValue(ks.getKey().toString(), ks.getValue().toString()),
-													  (h1, h2) -> null,
-													  Function.identity()
-												  ));
+					var fa = loadCredentials(args[++i]);
+					if(fa != null)
+					{
+						basicAuth = fa.basicAuth;
+						headers = fa.headers;
 					}
 				}
 				case "--help" -> printHelp();
@@ -187,4 +199,6 @@ public class Main
 			""");
 		System.exit(1);
 	}
+
+	public record FHIRAuth(IClientInterceptor basicAuth, AdditionalRequestHeadersInterceptor headers){};
 }
